@@ -159,7 +159,7 @@ a{color:var(--accent)}
 const DEMO = new URLSearchParams(location.search).has("demo");
 const WORKFLOW = "watch.yml", BRANCH = "main", MAX_WATCHES = 5;
 const CLASSES = ["SL", "3E", "3A", "2A", "1A"];
-const INTERVALS = [[60, "1 hour"], [120, "2 hours"], [180, "3 hours"], [240, "4 hours"], [360, "6 hours"],
+const INTERVALS = [[15, "15 minutes"], [30, "30 minutes"], [60, "1 hour"], [120, "2 hours"], [180, "3 hours"], [240, "4 hours"], [360, "6 hours"],
                    [480, "8 hours"], [720, "12 hours"], [1440, "24 hours"]];
 
 const store = {
@@ -172,7 +172,8 @@ const guessRepo = () => {
 };
 const auth = { repo: store.get("tw.repo") || guessRepo(), token: store.get("tw.token") };
 
-const S = { config: null, sha: null, state: {}, history: [], run: null, loading: false, error: "", busy: false, tab: "alerts" };
+const RAW = () => "https://raw.githubusercontent.com/" + auth.repo + "/" + BRANCH + "/";
+const S = { private: false, config: null, sha: null, state: {}, history: [], run: null, loading: false, error: "", busy: false, tab: "alerts" };
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -181,7 +182,7 @@ const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":
 async function gh(path, opt = {}) {
   const r = await fetch("https://api.github.com/repos/" + auth.repo + path, {
     method: opt.method || "GET", cache: "no-store",
-    headers: { Authorization: "Bearer " + auth.token, Accept: opt.accept || "application/vnd.github+json",
+    headers: { ...(auth.token ? { Authorization: "Bearer " + auth.token } : {}), Accept: opt.accept || "application/vnd.github+json",
                "X-GitHub-Api-Version": "2022-11-28", ...(opt.body ? { "Content-Type": "application/json" } : {}) },
     body: opt.body ? JSON.stringify(opt.body) : undefined,
   });
@@ -201,14 +202,26 @@ const b64decode = (s) => new TextDecoder().decode(Uint8Array.from(atob(s.replace
 
 async function rawJson(name, fallback) {
   if (DEMO) { const r = await fetch("demo/" + name, { cache: "no-store" }); return r.ok ? r.json() : fallback; }
+  if (!auth.token) {
+    try { const r = await fetch(RAW() + name + "?t=" + Date.now(), { cache: "no-store" }); return r.ok ? await r.json() : fallback; }
+    catch (e) { return fallback; }
+  }
   try { return JSON.parse(await (await gh("/contents/" + name + "?ref=" + BRANCH, { accept: "application/vnd.github.raw+json" })).text()); }
   catch (e) { if (e.status === 404) return fallback; throw e; }
 }
 async function loadConfig() {
   if (DEMO) { if (!S.config) S.config = await (await fetch("demo/config.json")).json(); return; }
-  const j = await (await gh("/contents/config.json?ref=" + BRANCH)).json();
-  S.sha = j.sha;
-  S.config = JSON.parse(b64decode(j.content));
+  if (!auth.token) {
+    // Works only when the repository is public; otherwise ask for a token.
+    let r = null;
+    try { if (auth.repo) r = await fetch(RAW() + "config.json?t=" + Date.now(), { cache: "no-store" }); } catch (e) {}
+    if (!r || !r.ok) { const e = new Error("This repository is private."); e.private = true; throw e; }
+    S.config = await r.json(); S.sha = null;
+  } else {
+    const j = await (await gh("/contents/config.json?ref=" + BRANCH)).json();
+    S.sha = j.sha;
+    S.config = JSON.parse(b64decode(j.content));
+  }
   if (!Array.isArray(S.config.watches)) S.config.watches = [];
 }
 async function saveConfig(message) {
@@ -231,11 +244,11 @@ async function loadAll(quiet) {
   try {
     await loadConfig();
     const [st, hi] = await Promise.all([rawJson("state.json", {}), rawJson("history.json", []), loadRun()]);
-    S.state = st || {}; S.history = hi || []; S.error = "";
-  } catch (e) { S.error = e.message || String(e); }
+    S.state = st || {}; S.history = hi || []; S.error = ""; S.private = false;
+  } catch (e) { if (e.private) { S.private = true; S.error = ""; } else S.error = e.message || String(e); }
   S.loading = false;
   render();
-  if (runActive()) pollRun();
+  if (runActive() && auth.token) pollRun();
 }
 
 let pollTimer = null;
@@ -333,7 +346,7 @@ function parseBody(body) {
 
 function render() {
   const app = $("#app"), top = $("#topbtns");
-  if (!DEMO && !auth.token) { top.innerHTML = ""; app.innerHTML = setupView(); return; }
+  if (!DEMO && !auth.token && S.private) { top.innerHTML = ""; app.innerHTML = `<div class="card" style="max-width:560px;margin:24px auto">${connectHtml(false)}</div>`; return; }
   top.innerHTML = `
     <button class="btn" data-act="check" ${runActive() || S.busy ? "disabled" : ""} title="Check all watches now">↻<span class="lbl"> Check now</span></button>
     <button class="btn" data-act="settings" title="Settings" aria-label="Settings">⚙</button>
@@ -349,23 +362,30 @@ function render() {
   app.innerHTML = h + (w ? detailView(w) : homeView());
 }
 
-function setupView() {
-  return `<div class="card" style="max-width:560px;margin:24px auto">
-    <div class="title">Connect to your train watch</div>
-    <p class="muted" style="margin-top:6px">This page shows and edits the watches stored in your private GitHub repository. It needs an access token, entered once on each device.</p>
+function connectHtml(inDialog) {
+  return `<div class="title">${inDialog ? "Connect to make changes" : "Connect to your train watch"}</div>
+    <p class="muted" style="margin-top:6px">${inDialog ? "Viewing is open, but adding or changing watches needs a GitHub access token, entered once on each device."
+      : "This page shows and edits the watches stored in your private GitHub repository. It needs an access token, entered once on each device."}</p>
     <ol class="steps">
       <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → New fine-grained token</a>.</li>
       <li>Under <b>Repository access</b> choose <b>Only select repositories</b> and pick your train watch repository.</li>
       <li>Under <b>Permissions → Repository</b> set <b>Contents</b> and <b>Actions</b> to <b>Read and write</b>.</li>
       <li>Generate the token and paste it below.</li>
     </ol>
-    <form data-form="setup">
+    <form data-form="setup" style="display:block">
       <label class="f">Repository<input type="text" name="repo" value="${esc(auth.repo)}" placeholder="owner/repository" autocapitalize="off" autocomplete="off" spellcheck="false" required></label>
       <label class="f">Access token<input type="password" name="token" placeholder="github_pat_…" autocomplete="off" required>
         <small>Kept only in this browser. It is sent to GitHub and nowhere else.</small></label>
       <div class="row" style="margin-top:16px"><span class="msg small" id="setupmsg" style="color:var(--red);flex:1"></span>
-        <button class="btn primary">Connect</button></div>
-    </form></div>`;
+        ${inDialog ? `<button type="button" class="btn" data-act="close">Cancel</button>` : ""}<button class="btn primary" id="setupbtn">Connect</button></div>
+    </form>`;
+}
+/* Changes need a token. Returns true (and asks for one) when it is missing. */
+function needToken() {
+  if (DEMO || auth.token) return false;
+  $("#dlg").innerHTML = `<div style="padding:18px;overflow:auto">${connectHtml(true)}</div>`;
+  $("#dlg").showModal();
+  return true;
 }
 
 function homeView() {
@@ -389,7 +409,7 @@ function homeView() {
       ${status(w)[0] === "s-warn" ? `<div class="small" style="color:var(--orange);margin-top:10px">${esc(st.status)}</div>` : ""}
     </button>`;
   }
-  return h + `</div><p class="muted small" style="margin:16px 2px">Checks run on GitHub about once an hour. Availability is ConfirmTkt's cached copy; confirm on IRCTC before booking.</p>`;
+  return h + `</div><p class="muted small" style="margin:16px 2px">Checks run on GitHub, so timing can be a few minutes late. Availability is ConfirmTkt's cached copy; confirm on IRCTC before booking.</p>`;
 }
 
 function detailView(w) {
@@ -533,17 +553,17 @@ function readWatch(f) {
 }
 
 function settings() {
-  const topic = (S.config && S.config.ntfy_topic) || "";
   $("#dlg").innerHTML = `<form data-form="settings"><div class="dh">Settings</div><div class="db">
     <div class="sec">Phone alerts</div>
-    <label class="f">ntfy topic<input type="text" name="topic" value="${esc(topic)}" autocapitalize="off" autocomplete="off" spellcheck="false">
-      <small>Subscribe to the same topic in the ntfy app. Anyone who knows the name can read the alerts, so keep it hard to guess.</small></label>
+    <p class="small muted" style="margin-top:6px">Alerts go to the ntfy topic saved in the repository's <code>NTFY_TOPIC</code> secret on GitHub. Subscribe to the same topic in the ntfy app.</p>
+    <label class="f">Send a test alert<input type="text" name="topic" placeholder="your ntfy topic" autocapitalize="off" autocomplete="off" spellcheck="false">
+      <small>Type your topic to check the phone receives it. It is not saved here.</small></label>
     <div class="row" style="margin-top:10px"><button type="button" class="btn small" data-act="testalert">Send test alert</button><span class="small muted" id="testmsg"></span></div>
     <div class="sec">Connection</div>
-    <p class="small" style="margin-top:6px">${DEMO ? "Demo mode" : "Repository: <code>" + esc(auth.repo) + "</code>"}</p>
-    <div class="row" style="margin-top:8px"><button type="button" class="btn small danger" data-act="signout">Disconnect this browser</button></div>
-    </div><div class="df"><span class="msg" id="setmsg"></span><button type="button" class="btn" data-act="close">Close</button>
-    <button class="btn primary">Save</button></div></form>`;
+    <p class="small" style="margin-top:6px">${DEMO ? "Demo mode" : "Repository: <code>" + esc(auth.repo) + "</code><br>" + (auth.token ? "This browser can make changes." : "View only. Connect to add or change watches.")}</p>
+    <div class="row" style="margin-top:8px">${auth.token ? `<button type="button" class="btn small danger" data-act="signout">Disconnect this browser</button>`
+      : DEMO ? "" : `<button type="button" class="btn small" data-act="connect">Connect</button>`}</div>
+    </div><div class="df"><span class="spacer"></span><button type="button" class="btn primary" data-act="close">Done</button></div></form>`;
   $("#dlg").showModal();
 }
 
@@ -565,26 +585,29 @@ document.addEventListener("click", async (ev) => {
   else if (act === "open") { S.tab = "alerts"; location.hash = "#/w/" + encodeURIComponent(id); window.scrollTo(0, 0); }
   else if (act === "tab") { S.tab = el.dataset.tab; render(); }
   else if (act === "reload") loadAll();
-  else if (act === "check") checkNow();
+  else if (act === "check") { if (!needToken()) checkNow(); }
+  else if (act === "connect") needToken();
   else if (act === "close") $("#dlg").close();
   else if (act === "settings") settings();
   else if (act === "new") {
-    if (!S.config) return;
+    if (!S.config || needToken()) return;
     if (S.config.watches.length >= MAX_WATCHES) return toast("Up to " + MAX_WATCHES + " watches. Delete one first.");
     editor(null);
   }
-  else if (act === "edit" && w) editor(w);
+  else if (act === "edit" && w) { if (!needToken()) editor(w); }
   else if (act === "toggle" && w) {
+    if (needToken()) return;
     const on = w.enabled === false;
     change((on ? "Resume " : "Pause ") + routeOf(w), () => { w.enabled = on; }, () => { toast(on ? "Resumed" : "Paused"); if (on) checkNow(true); });
   }
   else if (act === "delete" && w) {
+    if (needToken()) return;
     if (!confirm("Delete the watch " + routeOf(w) + "? Its alerts stop.")) return;
     change("Delete " + routeOf(w), () => { S.config.watches = S.config.watches.filter((x) => x !== w); }, () => { location.hash = ""; toast("Deleted"); });
   }
   else if (act === "signout") {
     if (!confirm("Remove the access token from this browser?")) return;
-    store.set("tw.token", ""); auth.token = ""; S.config = null; $("#dlg").close(); render();
+    store.set("tw.token", ""); auth.token = ""; S.config = null; $("#dlg").close(); loadAll();
   }
   else if (act === "testalert") {
     const topic = el.form.elements.topic.value.trim(), msg = $("#testmsg");
@@ -612,12 +635,15 @@ document.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const f = ev.target, kind = f.dataset.form;
   if (kind === "setup") {
-    const msg = $("#setupmsg"), btn = f.querySelector("button");
+    const msg = $("#setupmsg"), btn = $("#setupbtn"), had = auth.repo;
     auth.repo = f.elements.repo.value.trim().replace(/^https:\/\/github\.com\//, "").replace(/\/+$/, "");
     auth.token = f.elements.token.value.trim();
-    if (!/^[\w.-]+\/[\w.-]+$/.test(auth.repo)) { auth.token = ""; msg.textContent = "Repository should look like owner/name."; return; }
+    if (!/^[\w.-]+\/[\w.-]+$/.test(auth.repo)) { auth.token = ""; auth.repo = had; msg.textContent = "Repository should look like owner/name."; return; }
     btn.disabled = true; msg.textContent = "";
-    try { await loadConfig(); store.set("tw.repo", auth.repo); store.set("tw.token", auth.token); loadAll(); }
+    try {
+      await loadConfig(); store.set("tw.repo", auth.repo); store.set("tw.token", auth.token);
+      S.private = false; if ($("#dlg").open) $("#dlg").close(); toast("Connected"); loadAll(true);
+    }
     catch (e) { auth.token = ""; btn.disabled = false; msg.textContent = e.message; }
   }
   else if (kind === "watch") {
@@ -644,20 +670,14 @@ document.addEventListener("submit", async (ev) => {
     const saved = S.config.watches.find((x) => x.id === newId);
     if (saved && saved.enabled !== false) checkNow(true);
   }
-  else if (kind === "settings") {
-    const topic = f.elements.topic.value.trim();
-    if (topic === ((S.config && S.config.ntfy_topic) || "")) { $("#dlg").close(); return; }
-    if (!/^[\w-]{1,64}$/.test(topic)) { $("#setmsg").textContent = "Use letters, numbers, - and _ only."; return; }
-    const ok = await change("Change alert topic", () => { S.config.ntfy_topic = topic; });
-    if (ok) { $("#dlg").close(); toast("Saved"); }
-  }
+  else if (kind === "settings") $("#dlg").close();
 });
 
 window.addEventListener("hashchange", render);
-document.addEventListener("visibilitychange", () => { if (!document.hidden && (DEMO || auth.token) && S.config && !S.busy) loadAll(true); });
+document.addEventListener("visibilitychange", () => { if (!document.hidden && S.config && !S.busy && !$("#dlg").open) loadAll(true); });
 setInterval(() => { if (!document.hidden && S.config && !$("#dlg").open) render(); }, 60000);
 
-if (DEMO || auth.token) loadAll(); else render();
+loadAll();
 </script>
 </body>
 </html>
