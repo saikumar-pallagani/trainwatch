@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0b63ce">
+<title>Train Watch</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b63ce'/%3E%3Cpath d='M20 14h24a6 6 0 0 1 6 6v20a6 6 0 0 1-6 6l4 6h-6l-3-6H25l-3 6h-6l4-6a6 6 0 0 1-6-6V20a6 6 0 0 1 6-6zm1 7v9h22v-9zm3 14a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm16 0a3 3 0 1 0 0 6 3 3 0 0 0 0-6z' fill='white'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f5f7; --card:#fff; --text:#16181d; --muted:#667085; --line:#e4e7ec; --soft:#f0f2f5;
+  --accent:#0b63ce; --accent-text:#fff; --accent-soft:#e7f0fc;
+  --green:#12875a; --green-soft:#e3f5ec; --orange:#b45309; --orange-soft:#fdf0db;
+  --red:#c0352b; --red-soft:#fde8e6; --blue:#0b63ce; --grey:#8a93a3;
+  --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f1115; --card:#191c22; --text:#eceef2; --muted:#98a2b3; --line:#2a2f38; --soft:#22262e;
+    --accent:#4c9bf5; --accent-text:#06121f; --accent-soft:#172a42;
+    --green:#3ecf8e; --green-soft:#12301f; --orange:#f5a524; --orange-soft:#33260f;
+    --red:#ff7b72; --red-soft:#3a1715; --blue:#4c9bf5; --grey:#7c8594;
+    --shadow:none;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding-bottom:env(safe-area-inset-bottom)}
+button,input,select{font:inherit;color:inherit}
+h1,h2,h3,p{margin:0}
+.wrap{max-width:860px;margin:0 auto;padding:16px}
+header.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;gap:10px;padding-top:12px;padding-bottom:12px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;margin-right:auto;
+  background:none;border:0;padding:0;cursor:pointer}
+.brand i{width:30px;height:30px;border-radius:8px;background:var(--accent);display:grid;place-items:center;font-style:normal;font-size:16px}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 14px;font-weight:600;cursor:pointer;
+  min-height:38px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{background:var(--soft)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.danger{color:var(--red)}
+.btn.small{padding:5px 10px;min-height:32px;font-size:13.5px}
+.btn:disabled{opacity:.55;cursor:default}
+.btn:focus-visible,input:focus-visible,select:focus-visible,.card.link:focus-visible,.tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px}
+.card.link{display:block;width:100%;text-align:left;cursor:pointer;transition:transform .08s}
+.card.link:hover{border-color:var(--accent)}
+.card.link:active{transform:scale(.995)}
+.grid{display:grid;gap:12px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.spacer{flex:1}
+.title{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.h2{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:22px 2px 10px}
+.status{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:13.5px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--grey);flex:none}
+.s-run .dot{background:var(--green);box-shadow:0 0 0 0 color-mix(in srgb,var(--green) 60%,transparent);animation:pulse 2.2s infinite}
+.s-run{color:var(--green)} .s-warn{color:var(--orange)} .s-warn .dot{background:var(--orange)}
+.s-wait{color:var(--blue)} .s-wait .dot{background:var(--blue)} .s-pause{color:var(--muted)}
+@keyframes pulse{70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+@media (prefers-reduced-motion:reduce){.s-run .dot,.spin{animation:none}}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{background:var(--soft);border-radius:999px;padding:3px 10px;font-size:12.5px;color:var(--muted);font-weight:500}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.stat{background:var(--soft);border-radius:10px;padding:9px 11px}
+.stat b{display:block;font-size:17px;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.banner{border-radius:12px;padding:11px 14px;margin-bottom:12px;display:flex;gap:10px;align-items:center;font-size:14px}
+.banner.info{background:var(--accent-soft);color:var(--accent)}
+.banner.err{background:var(--red-soft);color:var(--red)}
+.banner.warn{background:var(--orange-soft);color:var(--orange)}
+.spin{width:15px;height:15px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite;flex:none}
+@keyframes sp{to{transform:rotate(360deg)}}
+.tabs{display:flex;gap:4px;background:var(--soft);border-radius:11px;padding:4px;margin:16px 0 12px}
+.tab{flex:1;border:0;background:none;border-radius:8px;padding:8px;font-weight:600;color:var(--muted);cursor:pointer}
+.tab[aria-selected=true]{background:var(--card);color:var(--text);box-shadow:var(--shadow)}
+.pill{display:inline-block;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:700;background:var(--soft);color:var(--muted)}
+.pill.g{background:var(--green-soft);color:var(--green)} .pill.o{background:var(--orange-soft);color:var(--orange)}
+.pill.b{background:var(--accent-soft);color:var(--accent)}
+.alert{padding:0;overflow:hidden}
+.alert>summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;gap:12px;align-items:flex-start}
+.alert>summary::-webkit-details-marker{display:none}
+.alert .ico{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--accent-soft);font-size:16px}
+.alert.urgent .ico{background:var(--green-soft)}
+.alert .body{border-top:1px solid var(--line);padding:4px 16px 14px}
+.dir{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);margin:14px 0 6px}
+.opt{display:grid;grid-template-columns:62px 1fr auto;gap:10px;padding:10px 0;border-top:1px solid var(--line);align-items:start}
+.opt:first-of-type{border-top:0}
+.opt .d{font-weight:700;font-size:13.5px}
+.opt .t{font-weight:600}
+.opt .r{text-align:right;white-space:nowrap}
+.opt .how{color:var(--accent);font-size:12.5px;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--muted);font-weight:600;font-size:12px;padding:6px 8px 6px 0;border-bottom:1px solid var(--line)}
+td{padding:7px 8px 7px 0;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+.scroll{overflow-x:auto}
+details.fold>summary{cursor:pointer;font-weight:600;padding:4px 0}
+.empty{text-align:center;padding:38px 16px;color:var(--muted)}
+.empty .big{font-size:34px;margin-bottom:6px}
+dialog{border:0;border-radius:16px;padding:0;background:var(--card);color:var(--text);width:min(560px,calc(100vw - 24px));
+  max-height:calc(100dvh - 24px);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(10,14,20,.5)}
+dialog form{display:flex;flex-direction:column;max-height:calc(100dvh - 24px)}
+.dh{padding:16px 18px;border-bottom:1px solid var(--line);font-weight:700;font-size:17px}
+.db{padding:6px 18px 14px;overflow:auto}
+.df{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
+.df .msg{flex:1;font-size:13px;color:var(--orange)}
+label.f{display:block;margin-top:13px;font-weight:600;font-size:13.5px}
+label.f small,.hint{display:block;font-weight:400;color:var(--muted);font-size:12.5px;margin-top:3px}
+input[type=text],input[type=password],input[type=date],input[type=number],select{width:100%;margin-top:5px;padding:9px 11px;
+  border:1px solid var(--line);border-radius:10px;background:var(--bg);min-height:40px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sec{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:20px}
+.cls{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.cls label{border:1px solid var(--line);border-radius:9px;padding:6px 12px;font-weight:600;cursor:pointer;user-select:none}
+.cls input{position:absolute;opacity:0;pointer-events:none}
+.cls label:has(input:checked){background:var(--accent);border-color:var(--accent);color:var(--accent-text)}
+.cls label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.check{display:flex;align-items:center;gap:9px;margin-top:13px;font-weight:600;cursor:pointer}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+#toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
+  background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;font-size:14px;opacity:0;
+  transition:.2s;pointer-events:none;z-index:50;max-width:calc(100vw - 32px);text-align:center}
+#toast.on{opacity:1;transform:translateX(-50%)}
+ol.steps{padding-left:20px;margin:8px 0}
+ol.steps li{margin:5px 0}
+code{background:var(--soft);padding:1px 5px;border-radius:5px;font-size:13px}
+a{color:var(--accent)}
+@media (max-width:520px){
+  .wrap{padding:12px}
+  .stats{grid-template-columns:repeat(3,1fr)}
+  .btn .lbl{display:none}
+  .opt{grid-template-columns:54px 1fr auto}
+}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <button class="brand" data-act="home" aria-label="Train Watch home"><i>🚆</i>Train Watch</button>
+  <span id="topbtns" class="row" style="gap:8px"></span>
+</div></header>
+<main class="wrap" id="app"></main>
+<dialog id="dlg"></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* Train Watch — a front end for the train-watch GitHub repository.
+   It reads config.json / state.json / history.json from the repository with the
+   GitHub API and saves changes to config.json. The access token stays in this browser. */
+
+const DEMO = new URLSearchParams(location.search).has("demo");
+const WORKFLOW = "watch.yml", BRANCH = "main", MAX_WATCHES = 5;
+const CLASSES = ["SL", "3E", "3A", "2A", "1A"];
+const INTERVALS = [[60, "1 hour"], [120, "2 hours"], [180, "3 hours"], [240, "4 hours"], [360, "6 hours"],
+                   [480, "8 hours"], [720, "12 hours"], [1440, "24 hours"]];
+
+const store = {
+  get(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } },
+  set(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (e) {} },
+};
+const guessRepo = () => {
+  const m = location.hostname.match(/^([a-z0-9-]+)\.github\.io$/i);
+  return m ? m[1] + "/trainwatch-test" : "";
+};
+const auth = { repo: store.get("tw.repo") || guessRepo(), token: store.get("tw.token") };
+
+const S = { config: null, sha: null, state: {}, history: [], run: null, loading: false, error: "", busy: false, tab: "alerts" };
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* ---------- GitHub ---------- */
+
+async function gh(path, opt = {}) {
+  const r = await fetch("https://api.github.com/repos/" + auth.repo + path, {
+    method: opt.method || "GET", cache: "no-store",
+    headers: { Authorization: "Bearer " + auth.token, Accept: opt.accept || "application/vnd.github+json",
+               "X-GitHub-Api-Version": "2022-11-28", ...(opt.body ? { "Content-Type": "application/json" } : {}) },
+    body: opt.body ? JSON.stringify(opt.body) : undefined,
+  });
+  if (!r.ok) {
+    const e = new Error(r.status === 401 ? "GitHub rejected the access token. It may be wrong or expired."
+      : r.status === 403 ? "The access token is not allowed to do this. Check its permissions."
+      : r.status === 404 ? "Not found. Check the repository name and that the token can access it."
+      : r.status === 409 ? "The settings changed elsewhere. Reload and try again."
+      : "GitHub error " + r.status);
+    e.status = r.status;
+    throw e;
+  }
+  return r;
+}
+const b64encode = (s) => { let o = ""; for (const b of new TextEncoder().encode(s)) o += String.fromCharCode(b); return btoa(o); };
+const b64decode = (s) => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, "")), (c) => c.charCodeAt(0)));
+
+async function rawJson(name, fallback) {
+  if (DEMO) { const r = await fetch("demo/" + name, { cache: "no-store" }); return r.ok ? r.json() : fallback; }
+  try { return JSON.parse(await (await gh("/contents/" + name + "?ref=" + BRANCH, { accept: "application/vnd.github.raw+json" })).text()); }
+  catch (e) { if (e.status === 404) return fallback; throw e; }
+}
+async function loadConfig() {
+  if (DEMO) { if (!S.config) S.config = await (await fetch("demo/config.json")).json(); return; }
+  const j = await (await gh("/contents/config.json?ref=" + BRANCH)).json();
+  S.sha = j.sha;
+  S.config = JSON.parse(b64decode(j.content));
+  if (!Array.isArray(S.config.watches)) S.config.watches = [];
+}
+async function saveConfig(message) {
+  if (DEMO) return;
+  const j = await (await gh("/contents/config.json", { method: "PUT", body: {
+    message, branch: BRANCH, sha: S.sha, content: b64encode(JSON.stringify(S.config, null, 2) + "\n") } })).json();
+  S.sha = j.content.sha;
+}
+async function loadRun() {
+  if (DEMO) return;
+  try {
+    const j = await (await gh("/actions/workflows/" + WORKFLOW + "/runs?per_page=1")).json();
+    S.run = (j.workflow_runs || [])[0] || null;
+  } catch (e) { S.run = null; }
+}
+const runActive = () => S.run && S.run.status !== "completed";
+
+async function loadAll(quiet) {
+  if (!quiet) { S.loading = true; render(); }
+  try {
+    await loadConfig();
+    const [st, hi] = await Promise.all([rawJson("state.json", {}), rawJson("history.json", []), loadRun()]);
+    S.state = st || {}; S.history = hi || []; S.error = "";
+  } catch (e) { S.error = e.message || String(e); }
+  S.loading = false;
+  render();
+  if (runActive()) pollRun();
+}
+
+let pollTimer = null;
+function pollRun() {
+  clearTimeout(pollTimer);
+  let n = 0;
+  const step = async () => {
+    await loadRun();
+    if (!runActive() || ++n > 40) { await loadAll(true); if (!runActive()) toast("Check finished"); return; }
+    render();
+    pollTimer = setTimeout(step, 10000);
+  };
+  pollTimer = setTimeout(step, 8000);
+}
+
+async function checkNow(silent) {
+  if (DEMO) { toast("Demo: a check would start now"); return; }
+  try {
+    await gh("/actions/workflows/" + WORKFLOW + "/dispatches", { method: "POST", body: { ref: BRANCH } });
+    S.run = { status: "queued", event: "workflow_dispatch", created_at: new Date().toISOString() };
+    if (!silent) toast("Check started. It takes a minute or two.");
+    render(); pollRun();
+  } catch (e) { toast(e.message); }
+}
+
+/* ---------- helpers ---------- */
+
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("on"), 3200);
+}
+const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const day = (iso) => { const p = (iso || "").split("-"); return p.length === 3 ? +p[2] + " " + MON[+p[1] - 1] : iso || ""; };
+const range = (a, b) => (a === b ? day(a) : day(a) + " – " + day(b));
+function ago(sec) {
+  if (!sec) return "not yet";
+  const d = Date.now() / 1000 - sec;
+  if (d < 90) return "just now";
+  if (d < 3600) return Math.round(d / 60) + " min ago";
+  if (d < 86400) return Math.round(d / 3600) + " hr ago";
+  return Math.round(d / 86400) + " days ago";
+}
+const clock = (sec) => new Date(sec * 1000).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const every = (m) => (INTERVALS.find((i) => i[0] === m) || [0, m + " min"])[1];
+const wstate = (w) => (S.state.watches || {})[w.id] || {};
+const routeOf = (w) => w.from + " → " + (w.to || []).join(", ");
+const isoPlus = (n) => { const d = new Date(Date.now() + n * 864e5); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+
+function status(w) {
+  const st = wstate(w);
+  if (w.enabled === false) return ["s-pause", "Paused"];
+  if (!st.last_run) return ["s-wait", runActive() ? "Checking now" : "Waiting for first check"];
+  if (st.status && st.status !== "OK" && st.status !== "Paused") return ["s-warn", "Needs attention"];
+  return ["s-run", runActive() ? "Checking now" : "Running"];
+}
+const statusHtml = (w) => { const [c, l] = status(w); return `<span class="status ${c}"><span class="dot"></span>${l}</span>`; };
+
+/* The checker stores each watch's latest results as markdown lines; turn them into data. */
+function parseSection(lines) {
+  const dirs = []; let cur = null, kind = "open", tbl = null;
+  for (const ln of lines || []) {
+    let m;
+    if ((m = ln.match(/^### (.+)/))) { cur = { name: m[1], open: 0, tables: {}, more: "" }; dirs.push(cur); kind = "open"; tbl = null; }
+    else if (!cur) continue;
+    else if ((m = ln.match(/^\*\*Open now: (\d+)\*\*/))) cur.open = +m[1];
+    else if (ln.startsWith("<details><summary>Waitlist")) { kind = "wait"; tbl = null; }
+    else if (ln.startsWith("**Special trains")) { kind = "special"; tbl = null; }
+    else if (ln.startsWith("…and")) cur.more = ln;
+    else if (ln.startsWith("|")) {
+      const cells = ln.replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+      if (/^-+$/.test(cells[0])) continue;
+      if (!tbl) { tbl = { head: cells, rows: [] }; cur.tables[kind] = tbl; } else tbl.rows.push(cells);
+    } else if (ln === "" || ln === "</details>") { if (tbl && tbl.rows.length) tbl = null; }
+  }
+  return dirs;
+}
+const bold = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+
+function parseBody(body) {
+  const blocks = []; let b = null, item = null, spec = false;
+  for (const ln of (body || "").split("\n")) {
+    let m;
+    if ((m = ln.match(/^===== (.+) =====$/))) { b = { dir: m[1], items: [], specials: [], more: "" }; blocks.push(b); spec = false; item = null; }
+    else if (!b) continue;
+    else if (ln.startsWith("(+")) b.more = ln;
+    else if (ln.trim() === "New special trains:") spec = true;
+    else if (spec) { if (ln.trim()) b.specials.push(ln.trim()); }
+    else if (/^\s/.test(ln)) { if (item) item.rest.push(ln.trim()); }
+    else if (ln.trim()) { item = { head: ln.split(" | "), rest: [] }; b.items.push(item); }
+  }
+  return blocks;
+}
+
+/* ---------- views ---------- */
+
+function render() {
+  const app = $("#app"), top = $("#topbtns");
+  if (!DEMO && !auth.token) { top.innerHTML = ""; app.innerHTML = setupView(); return; }
+  top.innerHTML = `
+    <button class="btn" data-act="check" ${runActive() || S.busy ? "disabled" : ""} title="Check all watches now">↻<span class="lbl"> Check now</span></button>
+    <button class="btn" data-act="settings" title="Settings" aria-label="Settings">⚙</button>
+    <button class="btn primary" data-act="new">＋<span class="lbl"> New watch</span></button>`;
+  if (S.loading && !S.config) { app.innerHTML = `<div class="empty"><div class="spin" style="margin:0 auto 12px"></div>Loading…</div>`; return; }
+  let h = "";
+  if (DEMO) h += `<div class="banner warn">Demo mode: sample data, nothing is saved.</div>`;
+  if (S.error) h += `<div class="banner err">${esc(S.error)} <span class="spacer"></span><button class="btn small" data-act="reload">Retry</button></div>`;
+  if (runActive()) h += `<div class="banner info"><span class="spin"></span>Checking trains now. Results appear here in a minute or two.</div>`;
+  if (!S.config) { app.innerHTML = h; return; }
+  const m = location.hash.match(/^#\/w\/(.+)$/);
+  const w = m && S.config.watches.find((x) => x.id === decodeURIComponent(m[1]));
+  app.innerHTML = h + (w ? detailView(w) : homeView());
+}
+
+function setupView() {
+  return `<div class="card" style="max-width:560px;margin:24px auto">
+    <div class="title">Connect to your train watch</div>
+    <p class="muted" style="margin-top:6px">This page shows and edits the watches stored in your private GitHub repository. It needs an access token, entered once on each device.</p>
+    <ol class="steps">
+      <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → New fine-grained token</a>.</li>
+      <li>Under <b>Repository access</b> choose <b>Only select repositories</b> and pick your train watch repository.</li>
+      <li>Under <b>Permissions → Repository</b> set <b>Contents</b> and <b>Actions</b> to <b>Read and write</b>.</li>
+      <li>Generate the token and paste it below.</li>
+    </ol>
+    <form data-form="setup">
+      <label class="f">Repository<input type="text" name="repo" value="${esc(auth.repo)}" placeholder="owner/repository" autocapitalize="off" autocomplete="off" spellcheck="false" required></label>
+      <label class="f">Access token<input type="password" name="token" placeholder="github_pat_…" autocomplete="off" required>
+        <small>Kept only in this browser. It is sent to GitHub and nowhere else.</small></label>
+      <div class="row" style="margin-top:16px"><span class="msg small" id="setupmsg" style="color:var(--red);flex:1"></span>
+        <button class="btn primary">Connect</button></div>
+    </form></div>`;
+}
+
+function homeView() {
+  const ws = S.config.watches;
+  if (!ws.length) return `<div class="card empty"><div class="big">🚆</div><div class="title" style="color:var(--text)">No watches yet</div>
+    <p style="margin:6px 0 14px">Add a route and dates to start checking for seats.</p><button class="btn primary" data-act="new">＋ New watch</button></div>`;
+  const active = ws.filter((w) => w.enabled !== false).length;
+  let h = `<div class="row" style="margin:6px 2px 12px"><div><div class="title">Your watches</div>
+    <div class="muted small">${active} running · ${ws.length - active} paused${S.run && S.run.created_at ? " · last check " + ago(Date.parse(S.run.created_at) / 1000) : ""}</div></div></div><div class="grid">`;
+  for (const w of ws) {
+    const st = wstate(w), n = S.history.filter((x) => x.watch === w.id).length;
+    h += `<button class="card link" data-act="open" data-id="${esc(w.id)}">
+      <div class="row"><div class="title">${esc(routeOf(w))}</div><span class="spacer"></span>${statusHtml(w)}</div>
+      <div class="chips"><span class="chip">Onward ${range(w.start, w.end)}</span>
+        ${w.return ? `<span class="chip">Return ${range(w.return.start, w.return.end)}</span>` : ""}
+        <span class="chip">${w.passengers} passenger${w.passengers === 1 ? "" : "s"}</span>
+        <span class="chip">${esc((w.classes || []).join(" · "))}</span><span class="chip">Every ${every(w.interval_minutes || 60)}</span></div>
+      <div class="stats"><div class="stat"><b>${st.open == null ? "–" : st.open}</b><span>open options</span></div>
+        <div class="stat"><b>${n}</b><span>alerts sent</span></div>
+        <div class="stat"><b style="font-size:14px;line-height:1.75">${ago(st.last_run)}</b><span>last check</span></div></div>
+      ${status(w)[0] === "s-warn" ? `<div class="small" style="color:var(--orange);margin-top:10px">${esc(st.status)}</div>` : ""}
+    </button>`;
+  }
+  return h + `</div><p class="muted small" style="margin:16px 2px">Checks run on GitHub about once an hour. Availability is ConfirmTkt's cached copy; confirm on IRCTC before booking.</p>`;
+}
+
+function detailView(w) {
+  const st = wstate(w), hist = S.history.filter((x) => x.watch === w.id).slice().reverse();
+  let h = `<div class="row" style="margin-bottom:10px"><button class="btn small" data-act="home">‹ All watches</button></div>
+  <div class="card">
+    <div class="row"><div class="title">${esc(routeOf(w))}</div><span class="spacer"></span>${statusHtml(w)}</div>
+    <div class="chips"><span class="chip">Onward ${range(w.start, w.end)}</span>
+      ${w.return ? `<span class="chip">Return ${range(w.return.start, w.return.end)}</span>` : ""}
+      <span class="chip">${w.passengers} passenger${w.passengers === 1 ? "" : "s"}</span>
+      <span class="chip">${esc((w.classes || []).join(" · "))}</span><span class="chip">Every ${every(w.interval_minutes || 60)}</span></div>
+    <div class="stats"><div class="stat"><b>${st.open == null ? "–" : st.open}</b><span>open options</span></div>
+      <div class="stat"><b>${hist.length}</b><span>alerts sent</span></div>
+      <div class="stat"><b style="font-size:14px;line-height:1.75">${ago(st.last_run)}</b><span>last check</span></div></div>
+    ${status(w)[0] === "s-warn" ? `<div class="small" style="color:var(--orange);margin-top:10px">${esc(st.status)}</div>` : ""}
+    <div class="row" style="margin-top:14px;gap:8px">
+      <button class="btn small" data-act="edit" data-id="${esc(w.id)}">Edit</button>
+      <button class="btn small" data-act="toggle" data-id="${esc(w.id)}">${w.enabled === false ? "Resume" : "Pause"}</button>
+      <span class="spacer"></span><button class="btn small danger" data-act="delete" data-id="${esc(w.id)}">Delete</button></div>
+  </div>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-act="tab" data-tab="alerts" aria-selected="${S.tab === "alerts"}">Notifications${hist.length ? " (" + hist.length + ")" : ""}</button>
+    <button class="tab" role="tab" data-act="tab" data-tab="status" aria-selected="${S.tab === "status"}">Latest status</button></div>`;
+  return h + (S.tab === "alerts" ? alertsView(hist) : statusView(w));
+}
+
+function optRow(date, train, seg, right, how) {
+  return `<div class="opt"><div class="d">${esc(date)}</div><div><div class="t">${esc(train)}</div>
+    <div class="muted small">${esc(seg)}</div>${how ? `<div class="how">${esc(how)}</div>` : ""}</div><div class="r">${right}</div></div>`;
+}
+
+function alertsView(hist) {
+  if (!hist.length) return `<div class="card empty"><div class="big">🔔</div>No notifications sent yet.<br><span class="small">You will be alerted when seats open up or a new special train appears.</span></div>`;
+  let h = `<div class="grid">`;
+  hist.forEach((a, i) => {
+    h += `<details class="card alert ${a.urgent ? "urgent" : ""}" ${i === 0 ? "open" : ""}><summary><span class="ico">${a.urgent ? "✅" : "🔔"}</span>
+      <span style="flex:1"><b>${esc(a.title)}</b><br><span class="muted small">${clock(a.at)} · ${ago(a.at)}${a.sent ? "" : " · not sent to phone"}</span></span>
+      ${a.urgent ? `<span class="pill g">FULL GROUP</span>` : ""}</summary><div class="body">`;
+    for (const b of parseBody(a.body)) {
+      h += `<div class="dir">${esc(b.dir)}</div>`;
+      for (const it of b.items) {
+        const d = (it.rest[0] || "").match(/^(\w+): (\d+) seats \(([^)]+)\) Rs(\S*?),? data (.+) old$/);
+        const note = (it.rest.find((r) => r.startsWith("->")) || "").replace(/^->\s*/, "");
+        const right = d ? `<span class="pill b">${esc(d[1])}</span> <span class="pill ${d[3] === "FULL GROUP" ? "g" : "o"}">${esc(d[2])} seats</span>
+          <div class="muted small" style="margin-top:3px">₹${esc(d[4])} · ${esc(d[5])} old</div>` : `<span class="small">${esc(it.rest[0] || "")}</span>`;
+        h += optRow(it.head[0] || "", it.head[1] || "", it.head[2] || "", right, note);
+      }
+      if (b.more) h += `<div class="muted small" style="padding-top:6px">${esc(b.more)}</div>`;
+      if (b.specials.length) h += `<div class="small" style="margin-top:10px"><b>New special trains</b><br>${b.specials.map(esc).join("<br>")}</div>`;
+    }
+    h += `</div></details>`;
+  });
+  return h + `</div>`;
+}
+
+function statusView(w) {
+  const dirs = parseSection((S.state.sections || {})[w.id]);
+  if (!dirs.length) return `<div class="card empty"><div class="big">⏳</div>No results yet.<br><span class="small">They appear after the first check of this watch.</span></div>`;
+  let h = "";
+  for (const d of dirs) {
+    const o = d.tables.open, wl = d.tables.wait, sp = d.tables.special;
+    h += `<div class="h2">${esc(d.name)}</div><div class="card"><div class="row"><b>Open now</b><span class="pill ${d.open ? "g" : ""}">${d.open}</span></div>`;
+    if (o && o.rows.length) {
+      for (const r of o.rows) {
+        const full = /\(all/.test(r[5]), rac = /^RAC/.test(r[5]);
+        const seats = full ? r[5].replace(/\*\*/g, "").replace(/\s*\(all.*/, "") + " seats" : rac ? r[5] : r[5] + " seats";
+        h += optRow(r[0], r[1], r[2] + " · dep " + r[3],
+          `<span class="pill b">${esc(r[4])}</span> <span class="pill ${full ? "g" : "o"}">${esc(seats)}</span>
+           <div class="muted small" style="margin-top:3px">${esc(r[6])} · ${esc(r[7])} old</div>`, r[8] === "direct" ? "" : r[8]);
+      }
+      if (d.more) h += `<div class="muted small" style="padding-top:6px">${esc(d.more)}</div>`;
+    } else h += `<p class="muted small" style="margin-top:6px">No seats open in your classes right now.</p>`;
+    h += `</div>`;
+    if (sp && sp.rows.length) h += `<div class="card" style="margin-top:10px"><b>Special trains</b> <span class="pill">${sp.rows.length}</span>
+      <div class="scroll" style="margin-top:6px"><table><tr><th>Train</th><th>Status</th><th>Boards at</th></tr>
+      ${sp.rows.map((r) => `<tr><td><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join("")}</table></div></div>`;
+    if (wl && wl.rows.length) h += `<div class="card" style="margin-top:10px"><details class="fold"><summary>Waitlist status <span class="pill">${wl.rows.length}</span></summary>
+      <div class="scroll" style="margin-top:6px"><table><tr>${wl.head.map((c) => `<th>${esc(c)}</th>`).join("")}</tr>
+      ${wl.rows.map((r) => `<tr>${r.map((c) => `<td>${bold(c)}</td>`).join("")}</tr>`).join("")}</table></div></details></div>`;
+  }
+  return h;
+}
+
+/* ---------- dialogs ---------- */
+
+function editor(w) {
+  const n = !w, v = w || { from: "", to: [], start: isoPlus(7), end: isoPlus(9), passengers: 1, classes: CLASSES.slice(), interval_minutes: 60 };
+  const ret = v.return;
+  $("#dlg").innerHTML = `<form data-form="watch" data-id="${esc(w ? w.id : "")}" novalidate>
+    <div class="dh">${n ? "New watch" : "Edit watch"}</div><div class="db">
+      <div class="sec">Route</div>
+      <div class="two"><label class="f">From<input type="text" name="from" value="${esc(v.from)}" placeholder="BZA" maxlength="5" autocapitalize="characters" autocomplete="off" spellcheck="false"></label>
+      <label class="f">To<input type="text" name="to" value="${esc((v.to || []).join(", "))}" placeholder="KTYM, CNGR" autocapitalize="characters" autocomplete="off" spellcheck="false"></label></div>
+      <span class="hint">IRCTC station codes. Up to 4 destinations, separated by commas.</span>
+      <div class="sec">Onward journey</div>
+      <div class="two"><label class="f">From date<input type="date" name="start" value="${esc(v.start)}"></label>
+      <label class="f">To date<input type="date" name="end" value="${esc(v.end)}"></label></div>
+      <div class="sec">Return journey</div>
+      <label class="check"><input type="checkbox" name="ret" ${ret ? "checked" : ""}>Also watch the return journey</label>
+      <div class="two" id="retdates" ${ret ? "" : "hidden"}><label class="f">From date<input type="date" name="rstart" value="${esc(ret ? ret.start : "")}"></label>
+      <label class="f">To date<input type="date" name="rend" value="${esc(ret ? ret.end : "")}"></label></div>
+      <div class="sec">Group</div>
+      <label class="f">Passengers<input type="number" name="passengers" min="1" max="60" value="${esc(v.passengers)}" inputmode="numeric"></label>
+      <label class="f" style="margin-bottom:0">Classes</label>
+      <div class="cls">${CLASSES.map((c) => `<label><input type="checkbox" name="cls" value="${c}" ${(v.classes || []).includes(c) ? "checked" : ""}>${c}</label>`).join("")}</div>
+      <span class="hint">Preferred left to right. An alert is urgent when one class has seats for everyone.</span>
+      <div class="sec">Check every</div>
+      <select name="interval" aria-label="Check every">${INTERVALS.map(([m, l]) => `<option value="${m}" ${(v.interval_minutes || 60) === m ? "selected" : ""}>${l}</option>`).join("")}</select>
+    </div><div class="df"><span class="msg" id="edmsg"></span>
+      <button type="button" class="btn" data-act="close">Cancel</button>
+      <button class="btn primary" id="edsave">${n ? "Start watching" : "Save"}</button></div></form>`;
+  $("#dlg").showModal();
+}
+
+function readWatch(f) {
+  const g = (n) => f.elements[n].value.trim();
+  const code = (s) => /^[A-Z]{2,5}$/.test(s);
+  const from = g("from").toUpperCase();
+  const to = [...new Set(g("to").toUpperCase().split(/[\s,;/]+/).filter(Boolean))];
+  const classes = CLASSES.filter((c) => [...f.querySelectorAll("[name=cls]:checked")].some((x) => x.value === c));
+  const span = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5) + 1;
+  const ret = f.elements.ret.checked, pax = +g("passengers");
+  let err = "";
+  if (!code(from)) err = "Enter the starting station code.";
+  else if (!to.length) err = "Enter at least one destination code.";
+  else if (to.find((t) => !code(t))) err = "“" + to.find((t) => !code(t)) + "” is not a station code.";
+  else if (to.includes(from)) err = "Start and destination must differ.";
+  else if (to.length > 4) err = "Up to 4 destinations per watch.";
+  else if (!g("start") || !g("end")) err = "Pick the onward dates.";
+  else if (g("end") < g("start")) err = "Onward ‘to’ date is before the ‘from’ date.";
+  else if (span(g("start"), g("end")) > 10) err = "Onward dates can span up to 10 days.";
+  else if (ret && (!g("rstart") || !g("rend"))) err = "Pick the return dates.";
+  else if (ret && g("rend") < g("rstart")) err = "Return ‘to’ date is before the ‘from’ date.";
+  else if (ret && g("rstart") < g("start")) err = "Return cannot start before the onward journey.";
+  else if (ret && span(g("rstart"), g("rend")) > 10) err = "Return dates can span up to 10 days.";
+  else if (!(pax >= 1 && pax <= 60)) err = "Passengers must be 1 to 60.";
+  else if (!classes.length) err = "Pick at least one class.";
+  const w = { from, to, start: g("start"), end: g("end"), passengers: pax, classes, interval_minutes: +g("interval") };
+  if (ret) w.return = { start: g("rstart"), end: g("rend") };
+  return { w, err };
+}
+
+function settings() {
+  const topic = (S.config && S.config.ntfy_topic) || "";
+  $("#dlg").innerHTML = `<form data-form="settings"><div class="dh">Settings</div><div class="db">
+    <div class="sec">Phone alerts</div>
+    <label class="f">ntfy topic<input type="text" name="topic" value="${esc(topic)}" autocapitalize="off" autocomplete="off" spellcheck="false">
+      <small>Subscribe to the same topic in the ntfy app. Anyone who knows the name can read the alerts, so keep it hard to guess.</small></label>
+    <div class="row" style="margin-top:10px"><button type="button" class="btn small" data-act="testalert">Send test alert</button><span class="small muted" id="testmsg"></span></div>
+    <div class="sec">Connection</div>
+    <p class="small" style="margin-top:6px">${DEMO ? "Demo mode" : "Repository: <code>" + esc(auth.repo) + "</code>"}</p>
+    <div class="row" style="margin-top:8px"><button type="button" class="btn small danger" data-act="signout">Disconnect this browser</button></div>
+    </div><div class="df"><span class="msg" id="setmsg"></span><button type="button" class="btn" data-act="close">Close</button>
+    <button class="btn primary">Save</button></div></form>`;
+  $("#dlg").showModal();
+}
+
+/* ---------- actions ---------- */
+
+async function change(message, fn, after) {
+  if (S.busy) return false;
+  S.busy = true;
+  const backup = JSON.stringify(S.config);
+  try { fn(); await saveConfig(message); S.busy = false; render(); if (after) after(); return true; }
+  catch (e) { S.config = JSON.parse(backup); S.busy = false; render(); toast(e.message); return false; }
+}
+
+document.addEventListener("click", async (ev) => {
+  const el = ev.target.closest("[data-act]");
+  if (!el) return;
+  const act = el.dataset.act, id = el.dataset.id, w = S.config && S.config.watches.find((x) => x.id === id);
+  if (act === "home") { location.hash = ""; }
+  else if (act === "open") { S.tab = "alerts"; location.hash = "#/w/" + encodeURIComponent(id); window.scrollTo(0, 0); }
+  else if (act === "tab") { S.tab = el.dataset.tab; render(); }
+  else if (act === "reload") loadAll();
+  else if (act === "check") checkNow();
+  else if (act === "close") $("#dlg").close();
+  else if (act === "settings") settings();
+  else if (act === "new") {
+    if (!S.config) return;
+    if (S.config.watches.length >= MAX_WATCHES) return toast("Up to " + MAX_WATCHES + " watches. Delete one first.");
+    editor(null);
+  }
+  else if (act === "edit" && w) editor(w);
+  else if (act === "toggle" && w) {
+    const on = w.enabled === false;
+    change((on ? "Resume " : "Pause ") + routeOf(w), () => { w.enabled = on; }, () => { toast(on ? "Resumed" : "Paused"); if (on) checkNow(true); });
+  }
+  else if (act === "delete" && w) {
+    if (!confirm("Delete the watch " + routeOf(w) + "? Its alerts stop.")) return;
+    change("Delete " + routeOf(w), () => { S.config.watches = S.config.watches.filter((x) => x !== w); }, () => { location.hash = ""; toast("Deleted"); });
+  }
+  else if (act === "signout") {
+    if (!confirm("Remove the access token from this browser?")) return;
+    store.set("tw.token", ""); auth.token = ""; S.config = null; $("#dlg").close(); render();
+  }
+  else if (act === "testalert") {
+    const topic = el.form.elements.topic.value.trim(), msg = $("#testmsg");
+    if (!topic) { msg.textContent = "Enter a topic first."; return; }
+    msg.textContent = "Sending…";
+    try {
+      const r = await fetch("https://ntfy.sh/" + encodeURIComponent(topic), { method: "POST", headers: { Title: "Train Watch", Tags: "train" }, body: "Test alert: phone notifications are working." });
+      msg.textContent = r.ok ? "Sent. Check your phone." : "Could not send.";
+    } catch (e) { msg.textContent = "Could not send."; }
+  }
+});
+
+document.addEventListener("change", (ev) => {
+  if (ev.target.name !== "ret") return;
+  const f = ev.target.form, on = ev.target.checked;
+  $("#retdates").hidden = !on;
+  if (on && !f.elements.rstart.value) {
+    const plus2 = (s) => { if (!s) return ""; const d = new Date(Date.parse(s) + 2 * 864e5); return d.toISOString().slice(0, 10); };
+    f.elements.rstart.value = plus2(f.elements.start.value);
+    f.elements.rend.value = plus2(f.elements.end.value);
+  }
+});
+
+document.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const f = ev.target, kind = f.dataset.form;
+  if (kind === "setup") {
+    const msg = $("#setupmsg"), btn = f.querySelector("button");
+    auth.repo = f.elements.repo.value.trim().replace(/^https:\/\/github\.com\//, "").replace(/\/+$/, "");
+    auth.token = f.elements.token.value.trim();
+    if (!/^[\w.-]+\/[\w.-]+$/.test(auth.repo)) { auth.token = ""; msg.textContent = "Repository should look like owner/name."; return; }
+    btn.disabled = true; msg.textContent = "";
+    try { await loadConfig(); store.set("tw.repo", auth.repo); store.set("tw.token", auth.token); loadAll(); }
+    catch (e) { auth.token = ""; btn.disabled = false; msg.textContent = e.message; }
+  }
+  else if (kind === "watch") {
+    const { w, err } = readWatch(f), msg = $("#edmsg");
+    if (err) { msg.textContent = err; return; }
+    const id = f.dataset.id, btn = $("#edsave");
+    btn.disabled = true; msg.textContent = "";
+    let newId = id;
+    const ok = await change((id ? "Update " : "Add ") + routeOf(w), () => {
+      if (id) {
+        const cur = S.config.watches.find((x) => x.id === id);
+        if (!w.return) delete cur.return;
+        Object.assign(cur, w);
+      } else {
+        newId = (w.from + "-" + w.to[0] + "-" + Math.random().toString(36).slice(2, 6)).toLowerCase();
+        S.config.watches.push({ id: newId, enabled: true, ...w });
+      }
+    });
+    btn.disabled = false;
+    if (!ok) { msg.textContent = "Could not save. Try again."; return; }
+    $("#dlg").close();
+    toast(id ? "Saved. Checking now…" : "Watch added. Checking now…");
+    if (!id) { S.tab = "alerts"; location.hash = "#/w/" + encodeURIComponent(newId); }
+    const saved = S.config.watches.find((x) => x.id === newId);
+    if (saved && saved.enabled !== false) checkNow(true);
+  }
+  else if (kind === "settings") {
+    const topic = f.elements.topic.value.trim();
+    if (topic === ((S.config && S.config.ntfy_topic) || "")) { $("#dlg").close(); return; }
+    if (!/^[\w-]{1,64}$/.test(topic)) { $("#setmsg").textContent = "Use letters, numbers, - and _ only."; return; }
+    const ok = await change("Change alert topic", () => { S.config.ntfy_topic = topic; });
+    if (ok) { $("#dlg").close(); toast("Saved"); }
+  }
+});
+
+window.addEventListener("hashchange", render);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && (DEMO || auth.token) && S.config && !S.busy) loadAll(true); });
+setInterval(() => { if (!document.hidden && S.config && !$("#dlg").open) render(); }, 60000);
+
+if (DEMO || auth.token) loadAll(); else render();
+</script>
+</body>
+</html>
